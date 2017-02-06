@@ -33,7 +33,9 @@ def init_per_day(sdk):
     # 获取仓位信息
     positions = sdk.getPositions()
     stock_position = dict([[i.code, 1] for i in positions])
+    base_position = dict([i.code, i.optPosition] for i in positions)
     sdk.setGlobal('stock_position', stock_position)
+    sdk.setGlobal('base_position', base_position)
     # 找到中证500外的有仓位的股票
     out_zz500_stock = list(set(stock_position.keys()) - set(zz500))
     # 以下代码获取当天未停牌未退市的股票，即可交易股票
@@ -130,8 +132,6 @@ def strategy(sdk):
         down_line = sdk.getGlobal('down_line')
         # 取得盘口数据
         quotes = sdk.getQuotes(zz500_tradable)
-        # 可用资金
-        available_cash = sdk.getGlobal('available_cash')
 
         buy_orders = []
         sell_orders = []
@@ -141,7 +141,7 @@ def strategy(sdk):
             up = up_line[stock]
             down = down_line[stock]
             if (current_price > up) & (stock_position[stock] == 1):
-                volume = 100 * np.floor(available_cash * 0.5 / (100 * current_price))
+                volume = position_dict[stock]
                 if volume > 0:
                     order = [stock, current_price, volume, 1]
                     buy_orders.append(order)
@@ -168,9 +168,7 @@ def strategy(sdk):
 
     if sdk.getNowTime() == '145500':
         # 获取仓位信息及有仓位的股票
-        positions = sdk.getPositions()
-        position_dict = dict([[i.code, i.optPosition] for i in positions])
-        available_cash = sdk.getGlobal('available_cash')
+        base_position = sdk.getGlobal('base_position')
         stock_position = sdk.getGlobal('stock_position')
         stock_to_clear = list(stock_position.keys())
         quotes = sdk.getQuotes(stock_to_clear)
@@ -178,12 +176,12 @@ def strategy(sdk):
         for stock in stock_to_clear:
             if stock_position[stock] == 2:
                 price = quotes[stock].current
-                volume = position_dict[stock]
+                volume = base_position[stock]
                 order = [stock, price, volume, -1]
                 clear_orders.append(order)
             elif stock_position[stock] == 0:
                 price = quotes[stock].current
-                volume = 100 * np.floor(available_cash * 0.5 / (price * 100))
+                volume = base_position[stock]
                 order = [stock, price, volume, 1]
                 clear_orders.append(order)
             else:
