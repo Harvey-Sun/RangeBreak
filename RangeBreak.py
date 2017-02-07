@@ -73,8 +73,8 @@ def strategy(sdk):
         # 有底仓的股票
         stock_position = sdk.getGlobal('stock_position')
         # 考虑被移出中证500的那些股票，卖出其底仓
-        base_clear = []
         if out_zz500_available:
+            base_clear = []
             for stock in out_zz500_available:
                 position = position_dict[stock]
                 price = quotes[stock].current
